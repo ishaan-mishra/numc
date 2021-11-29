@@ -78,13 +78,24 @@ int allocate_matrix(matrix **mat, int rows, int cols) {
     // Task 1.2 TODO
     // HINTS: Follow these steps.
     // 1. Check if the dimensions are valid. Return -1 if either dimension is not positive.
+    if (rows <= 0 || cols <= 0) {
+        return -1;
+    }
     // 2. Allocate space for the new matrix struct. Return -2 if allocating memory failed.
+    matrix* mat_struct = malloc(sizeof(matrix));
     // 3. Allocate space for the matrix data, initializing all entries to be 0. Return -2 if allocating memory failed.
+    mat_struct->data = calloc(rows * cols, sizeof(double));
     // 4. Set the number of rows and columns in the matrix struct according to the arguments provided.
+    mat_struct->rows = rows;
+    mat_struct->cols = cols;
     // 5. Set the `parent` field to NULL, since this matrix was not created from a slice.
+    mat_struct->parent = NULL;
     // 6. Set the `ref_cnt` field to 1.
+    mat_struct->ref_cnt = 1;
     // 7. Store the address of the allocated matrix struct at the location `mat` is pointing at.
+    *mat = mat_struct;
     // 8. Return 0 upon success.
+    return 0;
 }
 
 /*
@@ -96,8 +107,21 @@ void deallocate_matrix(matrix *mat) {
     // Task 1.3 TODO
     // HINTS: Follow these steps.
     // 1. If the matrix pointer `mat` is NULL, return.
+    if (mat == NULL) {
+        return;
+    }
     // 2. If `mat` has no parent: decrement its `ref_cnt` field by 1. If the `ref_cnt` field becomes 0, then free `mat` and its `data` field.
     // 3. Otherwise, recursively call `deallocate_matrix` on `mat`'s parent, then free `mat`.
+    if (mat->parent == NULL) {
+        mat->ref_cnt -= 1;
+        if (mat->ref_cnt == 0) {
+            free(mat->data);
+            free(mat);
+        }
+    } else {
+        deallocate_matrix(mat->parent);
+        free(mat);
+    }
 }
 
 /*

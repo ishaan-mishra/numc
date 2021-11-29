@@ -291,19 +291,20 @@ int main (void)
   }
 
    /* add the tests to the suite */
-   if ((CU_add_test(pSuite, "add_test", add_test) == NULL) ||
+   if (
+    //  (CU_add_test(pSuite, "add_test", add_test) == NULL) ||
         /* (OPTIONAL) Uncomment the following lines if you have implemented sub_matrix and neg_matrix.
         (CU_add_test(pSuite, "sub_test", sub_test) == NULL) ||
         (CU_add_test(pSuite, "neg_test", neg_test) == NULL) ||
-        */
-        (CU_add_test(pSuite, "mul_square_test", mul_square_test) == NULL) ||
-        (CU_add_test(pSuite, "mul_non_square_test", mul_non_square_test) == NULL) ||
-        (CU_add_test(pSuite, "abs_test", abs_test) == NULL) ||
-        (CU_add_test(pSuite, "pow_test", pow_test) == NULL) ||
+        // */
+        // (CU_add_test(pSuite, "mul_square_test", mul_square_test) == NULL) ||
+        // (CU_add_test(pSuite, "mul_non_square_test", mul_non_square_test) == NULL) ||
+        // (CU_add_test(pSuite, "abs_test", abs_test) == NULL) ||
+        // (CU_add_test(pSuite, "pow_test", pow_test) == NULL) ||
         (CU_add_test(pSuite, "alloc_fail_test", alloc_fail_test) == NULL) ||
         (CU_add_test(pSuite, "alloc_success_test", alloc_success_test) == NULL) ||
-        (CU_add_test(pSuite, "alloc_ref_fail_test", alloc_ref_fail_test) == NULL) ||
-        (CU_add_test(pSuite, "alloc_ref_success_test", alloc_ref_success_test) == NULL) ||
+        // (CU_add_test(pSuite, "alloc_ref_fail_test", alloc_ref_fail_test) == NULL) ||
+        // (CU_add_test(pSuite, "alloc_ref_success_test", alloc_ref_success_test) == NULL) ||
         (CU_add_test(pSuite, "dealloc_null_test", dealloc_null_test) == NULL) ||
         (CU_add_test(pSuite, "get_test", get_test) == NULL) ||
         (CU_add_test(pSuite, "set_test", set_test) == NULL)
@@ -314,8 +315,8 @@ int main (void)
    }
 
   // Run all tests using the basic interface
-  CU_basic_set_mode(CU_BRM_NORMAL);
-  // CU_basic_set_mode(CU_BRM_VERBOSE);
+  // CU_basic_set_mode(CU_BRM_NORMAL);
+  CU_basic_set_mode(CU_BRM_VERBOSE);
   CU_basic_run_tests();
   printf("\n");
   CU_basic_show_failures(CU_get_failure_list());
