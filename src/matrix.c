@@ -49,6 +49,9 @@ void rand_matrix(matrix *result, unsigned int seed, double low, double high) {
  */
 double get(matrix *mat, int row, int col) {
     // Task 1.1 TODO
+    int num_cols = mat->cols;
+    int index = row * num_cols + col;
+    return mat->data[index];
 }
 
 /*
@@ -57,6 +60,9 @@ double get(matrix *mat, int row, int col) {
  */
 void set(matrix *mat, int row, int col, double val) {
     // Task 1.1 TODO
+    int num_cols = mat->cols;
+    int index = row * num_cols + col;
+    mat->data[index] = val;
 }
 
 /*
