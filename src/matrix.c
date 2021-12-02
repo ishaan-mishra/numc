@@ -83,6 +83,9 @@ int allocate_matrix(matrix **mat, int rows, int cols) {
     }
     // 2. Allocate space for the new matrix struct. Return -2 if allocating memory failed.
     matrix* mat_struct = malloc(sizeof(matrix));
+    if (mat_struct == NULL) {
+        return -2;
+    }
     // 3. Allocate space for the matrix data, initializing all entries to be 0. Return -2 if allocating memory failed.
     mat_struct->data = calloc(rows * cols, sizeof(double));
     // 4. Set the number of rows and columns in the matrix struct according to the arguments provided.
@@ -140,13 +143,27 @@ int allocate_matrix_ref(matrix **mat, matrix *from, int offset, int rows, int co
     // Task 1.4 TODO
     // HINTS: Follow these steps.
     // 1. Check if the dimensions are valid. Return -1 if either dimension is not positive.
+     if (rows <= 0 || cols <= 0) {
+        return -1;
+    }
     // 2. Allocate space for the new matrix struct. Return -2 if allocating memory failed.
+    matrix* sliced_mat = malloc(sizeof(matrix));
+    if (sliced_mat == NULL) {
+        return -2;
+    };
     // 3. Set the `data` field of the new struct to be the `data` field of the `from` struct plus `offset`.
+    sliced_mat->data = from->data + offset;
     // 4. Set the number of rows and columns in the new struct according to the arguments provided.
+    sliced_mat->rows = rows;
+    sliced_mat->cols = cols;
     // 5. Set the `parent` field of the new struct to the `from` struct pointer.
-    // 6. Increment the `ref_cnt` field of the `from` struct by 1.
+    sliced_mat->parent = from;
+    // 6. Increment the `ref_cnt` field of the `from` struct by 1.;
+    from->ref_cnt += 1;
     // 7. Store the address of the allocated matrix struct at the location `mat` is pointing at.
+    *mat = sliced_mat;
     // 8. Return 0 upon success.
+    return 0;
 }
 
 /*
