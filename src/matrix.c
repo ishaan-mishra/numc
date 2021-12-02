@@ -171,6 +171,9 @@ int allocate_matrix_ref(matrix **mat, matrix *from, int offset, int rows, int co
  */
 void fill_matrix(matrix *mat, double val) {
     // Task 1.5 TODO
+    for (unsigned int i = 0; i < mat->rows * mat->cols; i += 1) {
+        mat->data[i] = val;
+    }
 }
 
 /*
@@ -180,6 +183,9 @@ void fill_matrix(matrix *mat, double val) {
  */
 int abs_matrix(matrix *result, matrix *mat) {
     // Task 1.5 TODO
+    for (unsigned int i = 0; i < mat->rows * mat->cols; i += 1) {
+        mat->data[i] = fabs(mat->data[i]);
+    } 
 }
 
 /*
@@ -190,6 +196,9 @@ int abs_matrix(matrix *result, matrix *mat) {
  */
 int neg_matrix(matrix *result, matrix *mat) {
     // Task 1.5 TODO
+    for (unsigned int i = 0; i < mat->rows * mat->cols; i += 1) {
+        result->data[i] = -(mat->data[i]);
+    } 
 }
 
 /*
@@ -200,6 +209,9 @@ int neg_matrix(matrix *result, matrix *mat) {
  */
 int add_matrix(matrix *result, matrix *mat1, matrix *mat2) {
     // Task 1.5 TODO
+    for (unsigned int i = 0; i < mat1->rows * mat1->cols; i += 1) {
+        result->data[i] = mat1->data[i] + mat2->data[i];
+    } 
 }
 
 /*
@@ -211,6 +223,9 @@ int add_matrix(matrix *result, matrix *mat1, matrix *mat2) {
  */
 int sub_matrix(matrix *result, matrix *mat1, matrix *mat2) {
     // Task 1.5 TODO
+    for (unsigned int i = 0; i < mat1->rows * mat1->cols; i += 1) {
+        result->data[i] = mat1->data[i] - mat2->data[i];
+    } 
 }
 
 /*
