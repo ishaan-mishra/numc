@@ -358,6 +358,7 @@ int mul_matrix(matrix *result, matrix *mat1, matrix *mat2) {
            } 
         }
     }
+    deallocate_matrix(mat2_t);
     return 0;
 }
 
