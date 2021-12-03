@@ -50,7 +50,6 @@ void rand_matrix(matrix *result, unsigned int seed, double low, double high) {
  * You may assume `row` and `col` are valid. Note that the matrix is in row-major order.
  */
 double get(matrix *mat, int row, int col) {
-    // Task 1.1 TODO
     int num_cols = mat->cols;
     int index = row * num_cols + col;
     return mat->data[index];
@@ -61,7 +60,6 @@ double get(matrix *mat, int row, int col) {
  * `col` are valid. Note that the matrix is in row-major order.
  */
 void set(matrix *mat, int row, int col, double val) {
-    // Task 1.1 TODO
     int num_cols = mat->cols;
     int index = row * num_cols + col;
     mat->data[index] = val;
@@ -77,7 +75,6 @@ void set(matrix *mat, int row, int col, double val) {
  * Return 0 upon success.
  */
 int allocate_matrix(matrix **mat, int rows, int cols) {
-    // Task 1.2 TODO
     // HINTS: Follow these steps.
     // 1. Check if the dimensions are valid. Return -1 if either dimension is not positive.
     if (rows <= 0 || cols <= 0) {
@@ -109,7 +106,6 @@ int allocate_matrix(matrix **mat, int rows, int cols) {
  * matrix has no other references (including itself).
  */
 void deallocate_matrix(matrix *mat) {
-    // Task 1.3 TODO
     // HINTS: Follow these steps.
     // 1. If the matrix pointer `mat` is NULL, return.
     if (mat == NULL) {
@@ -142,7 +138,6 @@ void deallocate_matrix(matrix *mat) {
  * there is no need to allocate space for matrix data.
  */
 int allocate_matrix_ref(matrix **mat, matrix *from, int offset, int rows, int cols) {
-    // Task 1.4 TODO
     // HINTS: Follow these steps.
     // 1. Check if the dimensions are valid. Return -1 if either dimension is not positive.
      if (rows <= 0 || cols <= 0) {
@@ -172,7 +167,6 @@ int allocate_matrix_ref(matrix **mat, matrix *from, int offset, int rows, int co
  * Sets all entries in mat to val. Note that the matrix is in row-major order.
  */
 void fill_matrix(matrix *mat, double val) {
-    // Task 1.5 TODO
     int len = (mat->rows * mat->cols) / 16 * 16;
     __m256d val_vec = _mm256_set1_pd(val);
     #pragma omp parallel for
@@ -195,7 +189,6 @@ void fill_matrix(matrix *mat, double val) {
  * Note that the matrix is in row-major order.
  */
 int abs_matrix(matrix *result, matrix *mat) {
-    // Task 1.5 TODO
     int len = (mat->rows * mat->cols) / 16 * 16;
     __m256d _neg1 = _mm256_set1_pd(-1.0);
     __m256d tmp, tmp_neg, tmp_abs;
@@ -236,7 +229,6 @@ int abs_matrix(matrix *result, matrix *mat) {
  * Note that the matrix is in row-major order.
  */
 int neg_matrix(matrix *result, matrix *mat) {
-    // Task 1.5 TODO
     for (unsigned int i = 0; i < mat->rows * mat->cols; i += 1) {
         result->data[i] = -(mat->data[i]);
     }
@@ -250,7 +242,6 @@ int neg_matrix(matrix *result, matrix *mat) {
  * Note that the matrix is in row-major order.
  */
 int add_matrix(matrix *result, matrix *mat1, matrix *mat2) {
-    // Task 1.5 TODO
     int len = (mat1->rows * mat1->cols) / 16 * 16;
     __m256d t1, t2, tmp;
     #pragma omp parallel for private(t1, t2, tmp)
@@ -291,7 +282,6 @@ int add_matrix(matrix *result, matrix *mat1, matrix *mat2) {
  * Note that the matrix is in row-major order.
  */
 int sub_matrix(matrix *result, matrix *mat1, matrix *mat2) {
-    // Task 1.5 TODO
     for (unsigned int i = 0; i < mat1->rows * mat1->cols; i += 1) {
         result->data[i] = mat1->data[i] - mat2->data[i];
     }
@@ -306,7 +296,6 @@ int sub_matrix(matrix *result, matrix *mat1, matrix *mat2) {
  * Note that the matrix is in row-major order.
  */
 int mul_matrix(matrix *result, matrix *mat1, matrix *mat2) {
-    // Task 1.6 TODO
     matrix *mat2_t;
     #pragma omp parallel for
     allocate_matrix(&mat2_t, mat2->cols, mat2->rows);
@@ -357,7 +346,6 @@ int mul_matrix(matrix *result, matrix *mat1, matrix *mat2) {
  * Note that the matrix is in row-major order.
  */
 int pow_matrix(matrix *result, matrix *mat, int pow) {
-    // Task 1.6 TODO
     int len = mat->rows * mat->cols * sizeof(double);
     if (pow == 0) {
         #pragma omp parallel for
@@ -388,7 +376,6 @@ int pow_matrix(matrix *result, matrix *mat, int pow) {
 }
 
 // int mul_matrix_correct(matrix* result, matrix* mat1, matrix* mat2) {
-//     // Task 1.6 TODO
 //     matrix *mat2_t;
     // allocate_matrix(&mat2_t, mat2->cols, mat2->rows);
     // #pragma omp parallel for
