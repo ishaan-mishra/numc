@@ -212,7 +212,7 @@ int abs_matrix(matrix *result, matrix *mat) {
     // Task 1.5 TODO
     __m256d _neg1 = _mm256_set1_pd(-1.0);
     __m256d tmp, tmp_neg, tmp_abs;
-    for (unsigned int i = 0; i < (mat->rows * mat->cols) - 3; i += 1) {
+    for (unsigned int i = 0; i < (mat->rows * mat->cols) - 3; i += 4) {
         tmp = _mm256_loadu_pd((mat->data + i));
         tmp_neg = _mm256_mul_pd(tmp, _neg1);
         tmp_abs = _mm256_max_pd(tmp, tmp_neg);
@@ -248,7 +248,7 @@ int neg_matrix(matrix *result, matrix *mat) {
 int add_matrix(matrix *result, matrix *mat1, matrix *mat2) {
     // Task 1.5 TODO
     __m256d t1, t2, tmp;
-    for (unsigned int i = 0; i < (mat1->rows * mat1->cols) / 4 * 4; i += 1) {
+    for (unsigned int i = 0; i < (mat1->rows * mat1->cols) / 4 * 4; i += 4) {
         t1 = _mm256_loadu_pd((mat1->data + i));
         t2 = _mm256_loadu_pd((mat2->data + i));
         tmp = _mm256_add_pd(t1, t2);
