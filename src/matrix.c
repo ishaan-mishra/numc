@@ -193,13 +193,19 @@ int allocate_matrix_ref(matrix **mat, matrix *from, int offset, int rows, int co
  */
 void fill_matrix(matrix *mat, double val) {
     // Task 1.5 TODO
-    __m256d val_vec = _mm256_set1_pd(val);
-    for (unsigned int i = 0; i < (mat->rows * mat->cols) - 3; i += 4) {
-        _mm256_storeu_pd((mat->data + i), val_vec);
-    }
-    // tail case
-    for (unsigned int i = (mat->rows * mat->cols) / 4 * 4; i < (mat->rows * mat->cols); i += 1) {
-        mat->data[i] = val;
+    int len = (mat->rows * mat->cols) / 4 * 4;
+    #pragma omp parallel
+    {
+        int num_th = omp_get_num_threads();
+        int th_ID = omp_get_thread_num();
+        __m256d val_vec = _mm256_set1_pd(val);
+        for (unsigned int i = 4*th_ID; i < len; i += 4*num_th) {
+            _mm256_storeu_pd((mat->data + i), val_vec);
+        }
+        // tail case
+        for (unsigned int i = len + th_ID; i < (mat->rows * mat->cols); i += num_th) {
+            mat->data[i] = val;
+        }
     }
 }
 
@@ -210,17 +216,23 @@ void fill_matrix(matrix *mat, double val) {
  */
 int abs_matrix(matrix *result, matrix *mat) {
     // Task 1.5 TODO
-    __m256d _neg1 = _mm256_set1_pd(-1.0);
-    __m256d tmp, tmp_neg, tmp_abs;
-    for (unsigned int i = 0; i < (mat->rows * mat->cols) - 3; i += 4) {
-        tmp = _mm256_loadu_pd((mat->data + i));
-        tmp_neg = _mm256_mul_pd(tmp, _neg1);
-        tmp_abs = _mm256_max_pd(tmp, tmp_neg);
-        _mm256_storeu_pd((result->data + i), tmp_abs);
-    }
-    // tail case
-    for (unsigned int i = (mat->rows * mat->cols) / 4 * 4; i < (mat->rows * mat->cols); i += 1) {
-        result->data[i] = fabs(mat->data[i]);
+    int len = (mat->rows * mat->cols) / 4 * 4;
+    #pragma omp parallel
+    {
+        int num_th = omp_get_num_threads();
+        int th_ID = omp_get_thread_num();
+        __m256d _neg1 = _mm256_set1_pd(-1.0);
+        __m256d tmp, tmp_neg, tmp_abs;
+        for (unsigned int i = 4*th_ID; i < len; i += 4*num_th) {
+            tmp = _mm256_loadu_pd((mat->data + i));
+            tmp_neg = _mm256_mul_pd(tmp, _neg1);
+            tmp_abs = _mm256_max_pd(tmp, tmp_neg);
+            _mm256_storeu_pd((result->data + i), tmp_abs);
+        }
+        // tail case
+        for (unsigned int i = len + th_ID; i < (mat->rows * mat->cols); i += num_th) {
+            result->data[i] = fabs(mat->data[i]);
+        }
     }
     return 0;
 }
@@ -247,16 +259,22 @@ int neg_matrix(matrix *result, matrix *mat) {
  */
 int add_matrix(matrix *result, matrix *mat1, matrix *mat2) {
     // Task 1.5 TODO
-    __m256d t1, t2, tmp;
-    for (unsigned int i = 0; i < (mat1->rows * mat1->cols) / 4 * 4; i += 4) {
-        t1 = _mm256_loadu_pd((mat1->data + i));
-        t2 = _mm256_loadu_pd((mat2->data + i));
-        tmp = _mm256_add_pd(t1, t2);
-        _mm256_storeu_pd((result->data + i), tmp);
-    }
-    // tail case
-    for (unsigned int i = (mat1->rows * mat1->cols) / 4 * 4; i < (mat1->rows * mat1->cols); i += 1) {
-       result->data[i] = mat1->data[i] + mat2->data[i]; 
+    int len = (mat1->rows * mat1->cols) / 4 * 4;
+    #pragma omp parallel
+    {
+        int num_th = omp_get_num_threads();
+        int th_ID = omp_get_thread_num();
+        __m256d t1, t2, tmp;
+        for (unsigned int i = 4*th_ID; i < len; i += 4*num_th) {
+            t1 = _mm256_loadu_pd((mat1->data + i));
+            t2 = _mm256_loadu_pd((mat2->data + i));
+            tmp = _mm256_add_pd(t1, t2);
+            _mm256_storeu_pd((result->data + i), tmp);
+        }
+        // tail case
+        for (unsigned int i = len + th_ID; i < (mat1->rows * mat1->cols); i += num_th) {
+            result->data[i] = mat1->data[i] + mat2->data[i]; 
+        }
     }
     return 0;
 }
@@ -286,10 +304,13 @@ int sub_matrix(matrix *result, matrix *mat1, matrix *mat2) {
 int mul_matrix(matrix *result, matrix *mat1, matrix *mat2) {
     // Task 1.6 TODO
     // matrix* mat2_t = transpose(mat2);
+    int j, k;
+    __m256d r;
+    #pragma omp parallel for private(r, j, k)
     for (unsigned int i = 0; i < mat1->rows; i += 1) {
-        for (unsigned int j = 0; j < mat2->cols / 4 * 4; j += 4) {
-            __m256d r = _mm256_setzero_pd(); //r = result[i][j]
-            for (unsigned int k = 0; k < mat1->cols; k += 1) {
+        for (j = 0; j < mat2->cols / 4 * 4; j += 4) {
+            r = _mm256_setzero_pd(); //r = result[i][j]
+            for (k = 0; k < mat1->cols; k += 1) {
                 r = _mm256_fmadd_pd(
                     _mm256_broadcast_sd(mat1->data + i*mat1->cols + k), 
                     _mm256_loadu_pd(mat2->data + k*mat2->cols + j),
