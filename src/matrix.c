@@ -44,16 +44,6 @@ void rand_matrix(matrix *result, unsigned int seed, double low, double high) {
 }
 
 
-// matrix* transpose(matrix* mat) {
-//     matrix mat_t;
-//     allocate_matrix(&mat_t, mat->cols, mat->rows);
-//     for (unsigned int i = 0; i < mat_t->rows; i += 1) {
-//         for (unsigned int j = 0; j < mat_t->cols; j += 1) {
-//             mat_t->data[i*mat->cols + j] = mat->[j*mat->rows + i];
-//         }
-//     }
-//     return mat_t;
-// }
 
 /*
  * Returns the double value of the matrix at the given row and column.
@@ -316,17 +306,30 @@ int sub_matrix(matrix *result, matrix *mat1, matrix *mat2) {
  */
 int mul_matrix(matrix *result, matrix *mat1, matrix *mat2) {
     // Task 1.6 TODO
-    // matrix* mat2_t = transpose(mat2);
+    double start_time = omp_get_wtime();
+    for (int z = 0; z < 1000; z += 1) {    
+
+    matrix* mat2_t;
+    allocate_matrix(&mat2_t, mat2->cols, mat2->rows);
+    for (unsigned int i = 0; i < mat2_t->rows; i += 1) {
+        // for (unsigned int j = 0; j < mat2_t->cols / 4 * 4; j += 4) {
+        //     mat2_t->data[i*mat->cols + j] = mat->[j*mat->rows + i];
+        // }
+        for (unsigned int j = 0; j < mat2_t->cols; j += 1) {
+            mat2_t->data[i*mat2_t->cols + j] = mat2->data[j*mat2->cols + i];
+        }
+    }
+
     int j, k;
     __m256d r;
     #pragma omp parallel for private(r, j, k)
     for (unsigned int i = 0; i < mat1->rows; i += 1) {
-        for (j = 0; j < mat2->cols / 16 * 16; j += 16) {
+        for (j = 0; j < mat2_t->rows / 16 * 16; j += 16) {
             r = _mm256_setzero_pd(); //r = result[i][j]
             for (k = 0; k < mat1->cols; k += 1) {
                 r = _mm256_fmadd_pd(
                     _mm256_broadcast_sd(mat1->data + i*mat1->cols + k), 
-                    _mm256_loadu_pd(mat2->data + k*mat2->cols + j),
+                    _mm256_loadu_pd(mat2->data + j*mat2_t->cols + k),
                     r);
             }
             _mm256_storeu_pd(result->data + i*result->cols + j, r);
@@ -335,47 +338,52 @@ int mul_matrix(matrix *result, matrix *mat1, matrix *mat2) {
             for (k = 0; k < mat1->cols; k += 1) {
                 r = _mm256_fmadd_pd(
                     _mm256_broadcast_sd(mat1->data + i*mat1->cols + k), 
-                    _mm256_loadu_pd(mat2->data + k*mat2->cols + j),
+                    _mm256_loadu_pd(mat2->data + j*mat2_t->cols + k),
                     r);
             }
             _mm256_storeu_pd(result->data + i*result->cols + j, r);
 
-            r = _mm256_setzero_pd(); //r = result[i][j]
+           r = _mm256_setzero_pd(); //r = result[i][j]
             for (k = 0; k < mat1->cols; k += 1) {
                 r = _mm256_fmadd_pd(
                     _mm256_broadcast_sd(mat1->data + i*mat1->cols + k), 
-                    _mm256_loadu_pd(mat2->data + k*mat2->cols + j),
+                    _mm256_loadu_pd(mat2->data + j*mat2_t->cols + k),
                     r);
             }
             _mm256_storeu_pd(result->data + i*result->cols + j, r);
 
-            r = _mm256_setzero_pd(); //r = result[i][j]
+           r = _mm256_setzero_pd(); //r = result[i][j]
             for (k = 0; k < mat1->cols; k += 1) {
                 r = _mm256_fmadd_pd(
                     _mm256_broadcast_sd(mat1->data + i*mat1->cols + k), 
-                    _mm256_loadu_pd(mat2->data + k*mat2->cols + j),
+                    _mm256_loadu_pd(mat2->data + j*mat2_t->cols + k),
                     r);
             }
             _mm256_storeu_pd(result->data + i*result->cols + j, r);
         }
         // tail case
-        for (unsigned int j = mat2->cols / 16 * 16; j < mat2->cols / 4 * 4; j+= 4) {
+        for (unsigned int j = mat2_t->rows / 16 * 16; j < mat2_t->rows / 4 * 4; j+= 4) {
             r = _mm256_setzero_pd(); //r = result[i][j]
             for (k = 0; k < mat1->cols; k += 1) {
                 r = _mm256_fmadd_pd(
                     _mm256_broadcast_sd(mat1->data + i*mat1->cols + k), 
-                    _mm256_loadu_pd(mat2->data + k*mat2->cols + j),
+                    _mm256_loadu_pd(mat2->data + j*mat2_t->cols + k),
                     r);
             }
             _mm256_storeu_pd(result->data + i*result->cols + j, r);
         }
-        for (unsigned int j = mat2->cols / 4 * 4; j < mat2->cols; j+= 1) {
+        for (unsigned int j = mat2->rows / 4 * 4; j < mat2_t->rows; j+= 1) {
            result->data[i*result->cols + j] = 0; 
            for (unsigned int k = 0; k < mat1->cols; k += 1) {
-               result->data[i*result->cols + j] += mat1->data[i*mat1->cols + k] * mat2->data[k*mat2->cols + j];
+               result->data[i*result->cols + j] += mat1->data[i*mat1->cols + k] * mat2_t->data[j*mat2_t->cols + k];
            } 
         }
     }
+
+
+
+    }
+    printf("\nMat Multiply time: %f\n", omp_get_wtime() - start_time);
     return 0;
 }
 
