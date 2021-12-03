@@ -43,6 +43,28 @@ void rand_matrix(matrix *result, unsigned int seed, double low, double high) {
     }
 }
 
+void identity_matrix(matrix* mat) {
+    for (int i = 0; i < mat->rows; i += 1) {
+            for (int j = 0; j < mat->cols; j += 1) {
+                if (i == j)
+                    mat->data[i*mat->cols + j] = 1;
+                else
+                    mat->data[i*mat->cols + j] = 0;
+        }
+    }
+}
+
+// matrix* transpose(matrix* mat) {
+//     matrix mat_t;
+//     allocate_matrix(&mat_t, mat->cols, mat->rows);
+//     for (unsigned int i = 0; i < mat_t->rows; i += 1) {
+//         for (unsigned int j = 0; j < mat_t->cols; j += 1) {
+//             mat_t->data[i*mat->cols + j] = mat->[j*mat->rows + i];
+//         }
+//     }
+//     return mat_t;
+// }
+
 /*
  * Returns the double value of the matrix at the given row and column.
  * You may assume `row` and `col` are valid. Note that the matrix is in row-major order.
@@ -171,9 +193,14 @@ int allocate_matrix_ref(matrix **mat, matrix *from, int offset, int rows, int co
  */
 void fill_matrix(matrix *mat, double val) {
     // Task 1.5 TODO
-    for (unsigned int i = 0; i < mat->rows * mat->cols; i += 1) {
+    __m256d val_vec = _mm256_set1_pd(val);
+    for (unsigned int i = 0; i < (mat->rows * mat->cols) - 3; i += 4) {
+        _mm256_storeu_pd((mat->data + i), val_vec);
+    }
+    // tail case
+    for (unsigned int i = (mat->rows * mat->cols) / 4 * 4; i < (mat->rows * mat->cols); i += 1) {
         mat->data[i] = val;
-    } 
+    }
 }
 
 /*
@@ -183,9 +210,19 @@ void fill_matrix(matrix *mat, double val) {
  */
 int abs_matrix(matrix *result, matrix *mat) {
     // Task 1.5 TODO
-    for (unsigned int i = 0; i < mat->rows * mat->cols; i += 1) {
+    __m256d _neg1 = _mm256_set1_pd(-1.0);
+    __m256d tmp, tmp_neg, tmp_abs;
+    for (unsigned int i = 0; i < (mat->rows * mat->cols) - 3; i += 1) {
+        tmp = _mm256_loadu_pd((mat->data + i));
+        tmp_neg = _mm256_mul_pd(tmp, _neg1);
+        tmp_abs = _mm256_max_pd(tmp, tmp_neg);
+        _mm256_storeu_pd((result->data + i), tmp_abs);
+    }
+    // tail case
+    for (unsigned int i = (mat->rows * mat->cols) / 4 * 4; i < (mat->rows * mat->cols); i += 1) {
         result->data[i] = fabs(mat->data[i]);
-    } 
+    }
+    return 0;
 }
 
 /*
@@ -198,7 +235,8 @@ int neg_matrix(matrix *result, matrix *mat) {
     // Task 1.5 TODO
     for (unsigned int i = 0; i < mat->rows * mat->cols; i += 1) {
         result->data[i] = -(mat->data[i]);
-    } 
+    }
+    return 0;
 }
 
 /*
@@ -209,9 +247,18 @@ int neg_matrix(matrix *result, matrix *mat) {
  */
 int add_matrix(matrix *result, matrix *mat1, matrix *mat2) {
     // Task 1.5 TODO
-    for (unsigned int i = 0; i < mat1->rows * mat1->cols; i += 1) {
-        result->data[i] = mat1->data[i] + mat2->data[i];
-    } 
+    __m256d t1, t2, tmp;
+    for (unsigned int i = 0; i < (mat1->rows * mat1->cols) / 4 * 4; i += 1) {
+        t1 = _mm256_loadu_pd((mat1->data + i));
+        t2 = _mm256_loadu_pd((mat2->data + i));
+        tmp = _mm256_add_pd(t1, t2);
+        _mm256_storeu_pd((result->data + i), tmp);
+    }
+    // tail case
+    for (unsigned int i = (mat1->rows * mat1->cols) / 4 * 4; i < (mat1->rows * mat1->cols); i += 1) {
+       result->data[i] = mat1->data[i] + mat2->data[i]; 
+    }
+    return 0;
 }
 
 /*
@@ -225,7 +272,8 @@ int sub_matrix(matrix *result, matrix *mat1, matrix *mat2) {
     // Task 1.5 TODO
     for (unsigned int i = 0; i < mat1->rows * mat1->cols; i += 1) {
         result->data[i] = mat1->data[i] - mat2->data[i];
-    } 
+    }
+    return 0;
 }
 
 /*
@@ -237,12 +285,24 @@ int sub_matrix(matrix *result, matrix *mat1, matrix *mat2) {
  */
 int mul_matrix(matrix *result, matrix *mat1, matrix *mat2) {
     // Task 1.6 TODO
+    // matrix* mat2_t = transpose(mat2);
     for (unsigned int i = 0; i < mat1->rows; i += 1) {
-        for (unsigned int j = 0; j < mat2->cols; j += 1) {
-            result->data[i*result->cols + j] = 0;
+        for (unsigned int j = 0; j < mat2->cols / 4 * 4; j += 4) {
+            __m256d r = _mm256_setzero_pd(); //r = result[i][j]
             for (unsigned int k = 0; k < mat1->cols; k += 1) {
-                result->data[i*result->cols + j] += mat1->data[i*mat1->cols + k] * mat2->data[k*mat2->cols + j];
+                r = _mm256_fmadd_pd(
+                    _mm256_broadcast_sd(mat1->data + i*mat1->cols + k), 
+                    _mm256_loadu_pd(mat2->data + k*mat2->cols + j),
+                    r);
             }
+            _mm256_storeu_pd(result->data + i*result->cols + j, r);
+        }
+        // tail case
+        for (unsigned int j = mat2->cols / 4 * 4; j < mat2->cols; j+= 1) {
+           result->data[i*result->cols + j] = 0; 
+           for (unsigned int k = 0; k < mat1->cols; k += 1) {
+               result->data[i*result->cols + j] += mat1->data[i*mat1->cols + k] * mat2->data[k*mat2->cols + j];
+           } 
         }
     }
     return 0;
@@ -258,14 +318,7 @@ int mul_matrix(matrix *result, matrix *mat1, matrix *mat2) {
 int pow_matrix(matrix *result, matrix *mat, int pow) {
     // Task 1.6 TODO
     if (pow == 0) {
-        for (int i = 0; i < result->rows; i += 1) {
-            for (int j = 0; j < result->cols; j += 1) {
-                if (i == j)
-                    result->data[i*result->cols + j] = 1;
-                else
-                    result->data[i*result->cols + j] = 0;
-            }
-        }
+        identity_matrix(result);
         return 0;
     }
     int len = mat->rows * mat->cols * sizeof(double);
@@ -280,6 +333,7 @@ int pow_matrix(matrix *result, matrix *mat, int pow) {
         memcpy(tmp->data, result->data, len);
         mul_matrix(result, tmp, mat);
     }
+    deallocate_matrix(tmp);
     return 0;
 }
 
