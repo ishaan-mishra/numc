@@ -297,7 +297,7 @@ int sub_matrix(matrix *result, matrix *mat1, matrix *mat2) {
  * Note that the matrix is in row-major order.
  */
 int mul_matrix(matrix *result, matrix *mat1, matrix *mat2) {
-    if (mat2->rows <= 125) {
+    if (mat2->rows <= 128) {
         int j, k;
         __m256d ra[UNROLL];
         #pragma omp parallel for private(ra, j, k)
