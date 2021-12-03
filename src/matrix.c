@@ -258,51 +258,62 @@ int mul_matrix(matrix *result, matrix *mat1, matrix *mat2) {
 int pow_matrix(matrix *result, matrix *mat, int pow) {
     // Task 1.6 TODO
     if (pow == 0) {
-        // identity_matrix(result);
         for (int i = 0; i < result->rows; i += 1) {
-        for (int j = 0; j < result->cols; j += 1) {
-            if (i == j)
-                result->data[i*result->cols + j] = 1;
-            else
-                result->data[i*result->cols + j] = 0;
+            for (int j = 0; j < result->cols; j += 1) {
+                if (i == j)
+                    result->data[i*result->cols + j] = 1;
+                else
+                    result->data[i*result->cols + j] = 0;
+            }
         }
-    }
         return 0;
     }
     int len = mat->rows * mat->cols * sizeof(double);
-    memcpy(result->data, mat->data, len);
     if (pow == 1) {
-        return 0;
-    }
-    matrix* x;
-    allocate_matrix(&x, mat->rows, mat->cols);
-    matrix* y;
-    allocate_matrix(&y, mat->rows, mat->cols);
-    // identity_matrix(y);
-    // TODO: only iterate through i
-    int i = 0;
-    while ((i < mat->rows) && (i < mat->cols)) {
-        y->data[i*(mat->rows + 1)] = 1;
-        i += 1;
+        memcpy(result->data, mat->data, len);
     }
     matrix* tmp;
     allocate_matrix(&tmp, mat->rows, mat->cols);
-    while (pow > 1) {
-        memcpy(x->data, result->data, len);
-        if (pow % 2 == 0) {
-            mul_matrix(result, x, x);
-            pow /= 2;
-        } else {
-            memcpy(tmp->data, y->data, len);
-            mul_matrix(y, x, tmp);
-            mul_matrix(result, x, x);
-            pow /= 2;
-        }
+    mul_matrix(tmp, mat, mat);
+    pow_matrix(result, tmp, pow/2);
+    if (pow % 2 == 1) {
+        memcpy(tmp->data, result->data, len);
+        mul_matrix(result, tmp, mat);
     }
-    memcpy(x->data, result->data, len);
-    mul_matrix(result, x, y);
-    deallocate_matrix(x);
-    deallocate_matrix(y);
-    deallocate_matrix(tmp);
     return 0;
 }
+
+
+
+//     memcpy(result->data, mat->data, len);
+//     if (pow == 1) {
+//         return 0;
+//     }
+//     matrix* x;
+//     allocate_matrix(&x, mat->rows, mat->cols);
+//     matrix* y;
+//     allocate_matrix(&y, mat->rows, mat->cols);
+//     int i = 0;
+//     while ((i < mat->rows) && (i < mat->cols)) {
+//         y->data[i*(mat->rows + 1)] = 1;
+//         i += 1;
+//     }
+//     matrix* tmp;
+//     allocate_matrix(&tmp, mat->rows, mat->cols);
+//     while (pow > 1) {
+//         memcpy(x->data, result->data, len);
+//         if (pow % 2 == 0) {
+//             mul_matrix(result, x, x);
+//             pow /= 2;
+//         } else {
+//             memcpy(tmp->data, y->data, len);
+//             mul_matrix(y, x, tmp);
+//             mul_matrix(result, x, x);
+//             pow /= 2;
+//         }
+//     }
+//     memcpy(x->data, result->data, len);
+//     mul_matrix(result, x, y);
+//     deallocate_matrix(x);
+//     deallocate_matrix(y);
+//     deallocate_matrix(tmp);
