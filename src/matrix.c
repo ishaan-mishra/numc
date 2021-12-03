@@ -43,16 +43,6 @@ void rand_matrix(matrix *result, unsigned int seed, double low, double high) {
     }
 }
 
-void identity_matrix(matrix* mat) {
-    for (int i = 0; i < mat->rows; i += 1) {
-            for (int j = 0; j < mat->cols; j += 1) {
-                if (i == j)
-                    mat->data[i*mat->cols + j] = 1;
-                else
-                    mat->data[i*mat->cols + j] = 0;
-        }
-    }
-}
 
 // matrix* transpose(matrix* mat) {
 //     matrix mat_t;
@@ -398,11 +388,16 @@ int mul_matrix(matrix *result, matrix *mat1, matrix *mat2) {
  */
 int pow_matrix(matrix *result, matrix *mat, int pow) {
     // Task 1.6 TODO
+    int len = mat->rows * mat->cols * sizeof(double);
     if (pow == 0) {
-        identity_matrix(result);
+        memset(result->data, 0, len);
+        int i = 0;
+        while ((i < mat->rows) && (i < mat->cols)) {
+            result->data[i*(mat->cols+1)] = 1;
+            i += 1;
+        }
         return 0;
     }
-    int len = mat->rows * mat->cols * sizeof(double);
     if (pow == 1) {
         memcpy(result->data, mat->data, len);
     }
