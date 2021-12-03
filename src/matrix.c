@@ -309,6 +309,7 @@ int sub_matrix(matrix *result, matrix *mat1, matrix *mat2) {
 int mul_matrix(matrix *result, matrix *mat1, matrix *mat2) {
     // Task 1.6 TODO
     matrix *mat2_t;
+    #pragma omp parallel for
     allocate_matrix(&mat2_t, mat2->cols, mat2->rows);
     for (int u = 0; u < mat2_t->rows; u += 1) {
         for (int v = 0; v < mat2_t->cols; v += 1) {
@@ -345,6 +346,7 @@ int mul_matrix(matrix *result, matrix *mat1, matrix *mat2) {
            } 
         }
     }
+    deallocate_matrix(mat2_t);
     return 0;
 }
 
