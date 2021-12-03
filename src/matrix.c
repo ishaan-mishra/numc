@@ -11,6 +11,7 @@
 #include <immintrin.h>
 #include <x86intrin.h>
 #endif
+#define UNROLL 4
 
 /* Below are some intel intrinsics that might be useful
  * void _mm256_storeu_pd (double * mem_addr, __m256d a)
@@ -306,21 +307,26 @@ int mul_matrix(matrix *result, matrix *mat1, matrix *mat2) {
     // }
 
     int j, k;
-    __m256d r;
-    #pragma omp parallel for private(r, j, k)
+    __m256d ra[4], r;
+    #pragma omp parallel for private(ra, r, j, k)
     for (unsigned int i = 0; i < mat1->rows; i += 1) {
-        for (j = 0; j < mat2->cols / 4 * 4; j += 4) {
-            r = _mm256_setzero_pd(); //r = result[i][j]
-            for (k = 0; k < mat1->cols; k += 1) {
-                r = _mm256_fmadd_pd(
-                    _mm256_broadcast_sd(mat1->data + i*mat1->cols + k), 
-                    _mm256_loadu_pd(mat2->data + k*mat2->cols + j),
-                    r);
+        for (j = 0; j < mat2->cols / (4 * UNROLL) * 4 * UNROLL; j += 4*UNROLL) {
+            for (int x = 0; x < UNROLL; x += 1) {
+                ra[x] = _mm256_setzero_pd(); //ra[x] = result[i][j+x*4 : j+(x+1)*4]
             }
-            _mm256_storeu_pd(result->data + i*result->cols + j, r);
-        }
-        // tail case
-        for (unsigned int j = mat2->cols / 4 * 4; j < mat2->cols; j+= 1) {
+            for (k = 0; k < mat1->cols; k += 1) {
+                 __m256d m1 = _mm256_broadcast_sd(mat1->data + i*mat1->cols + k);
+                 for (int x = 0; x < UNROLL; x += 1) {
+                    __m256d m2 = _mm256_loadu_pd(mat2->data + k*mat2->cols + j + x*4);
+                    ra[x] = _mm256_fmadd_pd(m1, m2, ra[x]);
+                 }
+            }
+            for (int x = 0; x < UNROLL; x += 1) {
+                _mm256_storeu_pd(result->data + i*result->cols + j + x*4, ra[x]);
+            }
+        }        
+        // tail case SIMD
+        for (unsigned int j = mat2->cols / (4 * UNROLL) * 4 * UNROLL; j < mat2->cols; j+= 1) {
            result->data[i*result->cols + j] = 0; 
            for (unsigned int k = 0; k < mat1->cols; k += 1) {
                result->data[i*result->cols + j] += mat1->data[i*mat1->cols + k] * mat2->data[k*mat2->cols + j];
