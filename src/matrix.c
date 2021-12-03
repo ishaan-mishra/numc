@@ -2,8 +2,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-// #include <omp.h>
-#include <math.h> // TODO: remove
+#include <omp.h>
 
 // Include SSE intrinsics
 #if defined(_MSC_VER)
