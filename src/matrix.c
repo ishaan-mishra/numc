@@ -173,7 +173,7 @@ void fill_matrix(matrix *mat, double val) {
     // Task 1.5 TODO
     for (unsigned int i = 0; i < mat->rows * mat->cols; i += 1) {
         mat->data[i] = val;
-    }
+    } 
 }
 
 /*
@@ -184,7 +184,7 @@ void fill_matrix(matrix *mat, double val) {
 int abs_matrix(matrix *result, matrix *mat) {
     // Task 1.5 TODO
     for (unsigned int i = 0; i < mat->rows * mat->cols; i += 1) {
-        mat->data[i] = fabs(mat->data[i]);
+        result->data[i] = fabs(mat->data[i]);
     } 
 }
 
@@ -237,6 +237,15 @@ int sub_matrix(matrix *result, matrix *mat1, matrix *mat2) {
  */
 int mul_matrix(matrix *result, matrix *mat1, matrix *mat2) {
     // Task 1.6 TODO
+    for (unsigned int i = 0; i < mat1->rows; i += 1) {
+        for (unsigned int j = 0; j < mat2->cols; j += 1) {
+            result->data[i*result->cols + j] = 0;
+            for (unsigned int k = 0; k < mat1->cols; k += 1) {
+                result->data[i*result->cols + j] += mat1->data[i*mat1->cols + k] * mat2->data[k*mat2->cols + j];
+            }
+        }
+    }
+    return 0;
 }
 
 /*
@@ -248,4 +257,52 @@ int mul_matrix(matrix *result, matrix *mat1, matrix *mat2) {
  */
 int pow_matrix(matrix *result, matrix *mat, int pow) {
     // Task 1.6 TODO
+    if (pow == 0) {
+        // identity_matrix(result);
+        for (int i = 0; i < result->rows; i += 1) {
+        for (int j = 0; j < result->cols; j += 1) {
+            if (i == j)
+                result->data[i*result->cols + j] = 1;
+            else
+                result->data[i*result->cols + j] = 0;
+        }
+    }
+        return 0;
+    }
+    int len = mat->rows * mat->cols * sizeof(double);
+    memcpy(result->data, mat->data, len);
+    if (pow == 1) {
+        return 0;
+    }
+    matrix* x;
+    allocate_matrix(&x, mat->rows, mat->cols);
+    matrix* y;
+    allocate_matrix(&y, mat->rows, mat->cols);
+    // identity_matrix(y);
+    // TODO: only iterate through i
+    int i = 0;
+    while ((i < mat->rows) && (i < mat->cols)) {
+        y->data[i*(mat->rows + 1)] = 1;
+        i += 1;
+    }
+    matrix* tmp;
+    allocate_matrix(&tmp, mat->rows, mat->cols);
+    while (pow > 1) {
+        memcpy(x->data, result->data, len);
+        if (pow % 2 == 0) {
+            mul_matrix(result, x, x);
+            pow /= 2;
+        } else {
+            memcpy(tmp->data, y->data, len);
+            mul_matrix(y, x, tmp);
+            mul_matrix(result, x, x);
+            pow /= 2;
+        }
+    }
+    memcpy(x->data, result->data, len);
+    mul_matrix(result, x, y);
+    deallocate_matrix(x);
+    deallocate_matrix(y);
+    deallocate_matrix(tmp);
+    return 0;
 }
