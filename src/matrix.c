@@ -11,7 +11,7 @@
 #include <immintrin.h>
 #include <x86intrin.h>
 #endif
-#define UNROLL 1
+#define UNROLL 8
 
 /* Below are some intel intrinsics that might be useful
  * void _mm256_storeu_pd (double * mem_addr, __m256d a)
@@ -350,27 +350,6 @@ int mul_matrix(matrix *result, matrix *mat1, matrix *mat2) {
             result->data[i*result->cols + j] = sum;  
         }
     }
-
-    // int j, k;
-    // __m256d ra[UNROLL], r;
-    // // #pragma omp parallel for private(ra, r, j, k)
-    // for (unsigned int i = 0; i < mat1->rows; i += 1) {
-    //     for (j = 0; j < mat2_t->rows; j += 1) {
-    //         r = _mm256_setzero_pd();
-    //         for (k = 0; k < mat1->cols / 4 * 4; k += 4) {
-    //             __m256d m1 = _mm256_loadu_pd(mat1->data + i*mat1->cols + k);
-    //             __m256d m2 = _mm256_loadu_pd(mat2_t->data + j*mat2_t->cols + k);
-    //             r = _mm256_fmadd_pd(m1, m2, r);
-    //         }
-    //         double tmp [4];
-    //         _mm256_storeu_pd(tmp, r);
-    //         double sum = tmp[0] + tmp[1] + tmp[2] + tmp[3]; 
-    //         for (k = mat1->cols / 4 * 4; k < mat1->cols; k += 1) {
-    //             sum += mat1->data[i*mat1->cols + k] * mat2_t->data[j*mat2_t->cols + k];
-    //         }
-    //         result->data[i*result->cols + j] = sum;
-    //     }        
-    // }
     deallocate_matrix(mat2_t);
     return 0;
 }
@@ -411,58 +390,3 @@ int pow_matrix(matrix *result, matrix *mat, int pow) {
     deallocate_matrix(tmp);
     return 0;
 }
-
-// int mul_matrix_correct(matrix* result, matrix* mat1, matrix* mat2) {
-//     matrix *mat2_t;
-    // allocate_matrix(&mat2_t, mat2->cols, mat2->rows);
-    // #pragma omp parallel for
-    // for (int i = 0; i < mat2_t->rows; i += 1) {
-    //     for (int j = 0; j < mat2_t->cols; j += 1) {
-    //         mat2_t->data[i*mat2_t->cols + j] = mat2->data[j*mat2->cols + i];
-    //     }
-    // }
-
-    // int j, k;
-    // __m256d ra[4];
-    // __m256d r;
-    // #pragma omp parallel for private(r, ra, j, k)
-    // for (unsigned int i = 0; i < mat1->rows; i += 1) {
-    //     for (j = 0; j < mat2_t->rows / 16 * 16; j += 16) {
-    //         for (int x=0; x < 4; x += 1) {
-    //             ra[x] = _mm256_load_pd(result->data + i*result->cols + j + x*4);
-    //         }
-    //         for (k = 0; k < mat1->cols; k += 1) {
-    //             __m256d m1 = _mm256_broadcast_sd(mat1->data + i*mat1->cols + k);
-    //             for (int x=0; x < 4; x += 1) {
-    //                 ra[x] = _mm256_fmadd_pd(
-    //                     m1, 
-    //                     _mm256_loadu_pd(mat2->data + k*mat2->cols + j + x*4),
-    //                     ra[x]);
-    //             }
-    //         }
-    //         for (int x=0; x < 4; x += 1) {
-    //             _mm256_storeu_pd((result->data + i*result->cols + j + x*4), ra[x]);
-    //         }
-    //     }
-    //     // tail case
-    //     for (unsigned int j = mat2_t->rows / 16 * 16; j < mat2_t->rows / 4 * 4; j+= 4) {
-    //         r = _mm256_setzero_pd(); //r = result[i][j]
-    //         for (k = 0; k < mat1->cols; k += 1) {
-    //             r = _mm256_fmadd_pd(
-    //                 _mm256_broadcast_sd(mat1->data + i*mat1->cols + k), 
-    //                 _mm256_loadu_pd(mat2->data + k*mat2->cols + j),
-    //                 r);
-    //         }
-    //         _mm256_storeu_pd(result->data + i*result->cols + j, r);
-    //     }
-
-    //     for (unsigned int j = mat2_t->rows / 4 * 4; j < mat2_t->rows; j+= 1) {
-    //        result->data[i*result->cols + j] = 0; 
-    //        for (unsigned int k = 0; k < mat1->cols; k += 1) {
-    //            result->data[i*result->cols + j] += mat1->data[i*mat1->cols + k] * mat2_t->data[j*mat2_t->cols + k];
-    //        } 
-    //     }
-    // }
-    // deallocate_matrix(mat2_t);
-    // return 0;
-// }
