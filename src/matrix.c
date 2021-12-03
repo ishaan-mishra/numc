@@ -2,7 +2,8 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <omp.h>
+// #include <omp.h>
+#include <math.h> // TODO: remove
 
 // Include SSE intrinsics
 #if defined(_MSC_VER)
@@ -38,7 +39,7 @@ void rand_matrix(matrix *result, unsigned int seed, double low, double high) {
     srand(seed);
     for (int i = 0; i < result->rows; i++) {
         for (int j = 0; j < result->cols; j++) {
-            set(result, i, j, rand_double(low, high));
+            set(result, i, j, rand_double(low, high) / 1);
         }
     }
 }
@@ -276,6 +277,7 @@ int add_matrix(matrix *result, matrix *mat1, matrix *mat2) {
         _mm256_storeu_pd((result->data + i + 12), tmp);
     }
     // tail case
+    #pragma omp parallel for
     for (unsigned int i = len; i < (mat1->rows * mat1->cols); i += 1) {
         result->data[i] = mat1->data[i] + mat2->data[i]; 
     }
@@ -306,60 +308,36 @@ int sub_matrix(matrix *result, matrix *mat1, matrix *mat2) {
  */
 int mul_matrix(matrix *result, matrix *mat1, matrix *mat2) {
     // Task 1.6 TODO
-    double start_time = omp_get_wtime();
-    for (int z = 0; z < 1000; z += 1) {    
-
-    matrix* mat2_t;
+    matrix *mat2_t;
     allocate_matrix(&mat2_t, mat2->cols, mat2->rows);
-    for (unsigned int i = 0; i < mat2_t->rows; i += 1) {
-        // for (unsigned int j = 0; j < mat2_t->cols / 4 * 4; j += 4) {
-        //     mat2_t->data[i*mat->cols + j] = mat->[j*mat->rows + i];
-        // }
-        for (unsigned int j = 0; j < mat2_t->cols; j += 1) {
+    #pragma omp parallel for
+    for (int i = 0; i < mat2_t->rows; i += 1) {
+        for (int j = 0; j < mat2_t->cols; j += 1) {
             mat2_t->data[i*mat2_t->cols + j] = mat2->data[j*mat2->cols + i];
         }
     }
 
     int j, k;
+    __m256d ra[4];
     __m256d r;
-    #pragma omp parallel for private(r, j, k)
+    #pragma omp parallel for private(r, ra, j, k)
     for (unsigned int i = 0; i < mat1->rows; i += 1) {
         for (j = 0; j < mat2_t->rows / 16 * 16; j += 16) {
-            r = _mm256_setzero_pd(); //r = result[i][j]
-            for (k = 0; k < mat1->cols; k += 1) {
-                r = _mm256_fmadd_pd(
-                    _mm256_broadcast_sd(mat1->data + i*mat1->cols + k), 
-                    _mm256_loadu_pd(mat2->data + j*mat2_t->cols + k),
-                    r);
+            for (int x=0; x < 4; x += 1) {
+                ra[x] = _mm256_load_pd(result->data + i*result->cols + j + x*4);
             }
-            _mm256_storeu_pd(result->data + i*result->cols + j, r);
-
-            r = _mm256_setzero_pd(); //r = result[i][j]
             for (k = 0; k < mat1->cols; k += 1) {
-                r = _mm256_fmadd_pd(
-                    _mm256_broadcast_sd(mat1->data + i*mat1->cols + k), 
-                    _mm256_loadu_pd(mat2->data + j*mat2_t->cols + k),
-                    r);
+                __m256d m1 = _mm256_broadcast_sd(mat1->data + i*mat1->cols + k);
+                for (int x=0; x < 4; x += 1) {
+                    ra[x] = _mm256_fmadd_pd(
+                        m1, 
+                        _mm256_loadu_pd(mat2->data + k*mat2->cols + j + x*4),
+                        ra[x]);
+                }
             }
-            _mm256_storeu_pd(result->data + i*result->cols + j, r);
-
-           r = _mm256_setzero_pd(); //r = result[i][j]
-            for (k = 0; k < mat1->cols; k += 1) {
-                r = _mm256_fmadd_pd(
-                    _mm256_broadcast_sd(mat1->data + i*mat1->cols + k), 
-                    _mm256_loadu_pd(mat2->data + j*mat2_t->cols + k),
-                    r);
+            for (int x=0; x < 4; x += 1) {
+                _mm256_storeu_pd((result->data + i*result->cols + j + x*4), ra[x]);
             }
-            _mm256_storeu_pd(result->data + i*result->cols + j, r);
-
-           r = _mm256_setzero_pd(); //r = result[i][j]
-            for (k = 0; k < mat1->cols; k += 1) {
-                r = _mm256_fmadd_pd(
-                    _mm256_broadcast_sd(mat1->data + i*mat1->cols + k), 
-                    _mm256_loadu_pd(mat2->data + j*mat2_t->cols + k),
-                    r);
-            }
-            _mm256_storeu_pd(result->data + i*result->cols + j, r);
         }
         // tail case
         for (unsigned int j = mat2_t->rows / 16 * 16; j < mat2_t->rows / 4 * 4; j+= 4) {
@@ -367,23 +345,19 @@ int mul_matrix(matrix *result, matrix *mat1, matrix *mat2) {
             for (k = 0; k < mat1->cols; k += 1) {
                 r = _mm256_fmadd_pd(
                     _mm256_broadcast_sd(mat1->data + i*mat1->cols + k), 
-                    _mm256_loadu_pd(mat2->data + j*mat2_t->cols + k),
+                    _mm256_loadu_pd(mat2->data + k*mat2->cols + j),
                     r);
             }
             _mm256_storeu_pd(result->data + i*result->cols + j, r);
         }
-        for (unsigned int j = mat2->rows / 4 * 4; j < mat2_t->rows; j+= 1) {
+
+        for (unsigned int j = mat2_t->rows / 4 * 4; j < mat2_t->rows; j+= 1) {
            result->data[i*result->cols + j] = 0; 
            for (unsigned int k = 0; k < mat1->cols; k += 1) {
                result->data[i*result->cols + j] += mat1->data[i*mat1->cols + k] * mat2_t->data[j*mat2_t->cols + k];
            } 
         }
     }
-
-
-
-    }
-    printf("\nMat Multiply time: %f\n", omp_get_wtime() - start_time);
     return 0;
 }
 
@@ -398,11 +372,15 @@ int pow_matrix(matrix *result, matrix *mat, int pow) {
     // Task 1.6 TODO
     int len = mat->rows * mat->cols * sizeof(double);
     if (pow == 0) {
-        memset(result->data, 0, len);
-        int i = 0;
-        while ((i < mat->rows) && (i < mat->cols)) {
-            result->data[i*(mat->cols+1)] = 1;
-            i += 1;
+        #pragma omp parallel for
+        for (int i = 0; i < result->rows; i += 1) {
+            for (int j = 0; j < result->cols; j += 1) {
+                if (i == j) {
+                    result->data[i*result->cols + j] = 1;
+                } else {
+                    result->data[i*result->cols + j] = 0;
+                }
+            }
         }
         return 0;
     }
@@ -421,37 +399,30 @@ int pow_matrix(matrix *result, matrix *mat, int pow) {
     return 0;
 }
 
-
-
-//     memcpy(result->data, mat->data, len);
-//     if (pow == 1) {
-//         return 0;
-//     }
-//     matrix* x;
-//     allocate_matrix(&x, mat->rows, mat->cols);
-//     matrix* y;
-//     allocate_matrix(&y, mat->rows, mat->cols);
-//     int i = 0;
-//     while ((i < mat->rows) && (i < mat->cols)) {
-//         y->data[i*(mat->rows + 1)] = 1;
-//         i += 1;
-//     }
-//     matrix* tmp;
-//     allocate_matrix(&tmp, mat->rows, mat->cols);
-//     while (pow > 1) {
-//         memcpy(x->data, result->data, len);
-//         if (pow % 2 == 0) {
-//             mul_matrix(result, x, x);
-//             pow /= 2;
-//         } else {
-//             memcpy(tmp->data, y->data, len);
-//             mul_matrix(y, x, tmp);
-//             mul_matrix(result, x, x);
-//             pow /= 2;
+// int mul_matrix_correct(matrix* result, matrix* mat1, matrix* mat2) {
+//     // Task 1.6 TODO
+//     // matrix* mat2_t = transpose(mat2);
+//     int j, k;
+//     __m256d r;
+//     #pragma omp parallel for private(r, j, k)
+//     for (unsigned int i = 0; i < mat1->rows; i += 1) {
+//         for (j = 0; j < mat2->cols / 4 * 4; j += 4) {
+//             r = _mm256_setzero_pd(); //r = result[i][j]
+//             for (k = 0; k < mat1->cols; k += 1) {
+//                 r = _mm256_fmadd_pd(
+//                     _mm256_broadcast_sd(mat1->data + i*mat1->cols + k), 
+//                     _mm256_loadu_pd(mat2->data + k*mat2->cols + j),
+//                     r);
+//             }
+//             _mm256_storeu_pd(result->data + i*result->cols + j, r);
+//         }
+//         // tail case
+//         for (unsigned int j = mat2->cols / 4 * 4; j < mat2->cols; j+= 1) {
+//            result->data[i*result->cols + j] = 0; 
+//            for (unsigned int k = 0; k < mat1->cols; k += 1) {
+//                result->data[i*result->cols + j] += mat1->data[i*mat1->cols + k] * mat2->data[k*mat2->cols + j];
+//            } 
 //         }
 //     }
-//     memcpy(x->data, result->data, len);
-//     mul_matrix(result, x, y);
-//     deallocate_matrix(x);
-//     deallocate_matrix(y);
-//     deallocate_matrix(tmp);
+//     return 0;
+// }
