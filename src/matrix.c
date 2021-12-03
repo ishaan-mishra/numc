@@ -296,45 +296,38 @@ int sub_matrix(matrix *result, matrix *mat1, matrix *mat2) {
  * Note that the matrix is in row-major order.
  */
 int mul_matrix(matrix *result, matrix *mat1, matrix *mat2) {
-    matrix *mat2_t;
-    #pragma omp parallel for
-    allocate_matrix(&mat2_t, mat2->cols, mat2->rows);
-    for (int u = 0; u < mat2_t->rows; u += 1) {
-        for (int v = 0; v < mat2_t->cols; v += 1) {
-            mat2_t->data[u*mat2_t->cols + j] = mat2->data[v*mat2->cols + u];
-        }
-    }
+    // matrix *mat2_t;
+    // allocate_matrix(&mat2_t, mat2->cols, mat2->rows);
+    // #pragma omp parallel for
+    // for (int u = 0; u < mat2_t->rows; u += 1) {
+    //     for (int v = 0; v < mat2_t->cols; v += 1) {
+    //         mat2_t->data[u*mat2_t->cols + v] = mat2->data[v*mat2->cols + u];
+    //     }
+    // }
 
     int j, k;
-    __m256d ra[4], r;
-    #pragma omp parallel for private(r, ra, j, k)
+    __m256d r;
+    #pragma omp parallel for private(r, j, k)
     for (unsigned int i = 0; i < mat1->rows; i += 1) {
-        for (j = 0; j < mat2_t->rows / 4 * 4; j += 4) {
-            for (int x = 0; x < 4; x += 1) {
-                ra[x] = _mm256_loadu_pd(result->data + i*result->cols + j + x*4);
-            }
+        for (j = 0; j < mat2->cols / 4 * 4; j += 4) {
+            r = _mm256_setzero_pd(); //r = result[i][j]
             for (k = 0; k < mat1->cols; k += 1) {
-                __m256d m1 = _mm256_broadcast_sd(mat1->data + i*mat1->cols + k);
-                for (int x = 0; x < 4; x += 1) {
-                    ra[x] = _mm256_fmadd_pd(
-                        m1, 
-                        _mm256_loadu_pd(mat2->data + j*mat2_t->cols + k + x*4),
-                        ra[x]);
-                }
+                r = _mm256_fmadd_pd(
+                    _mm256_broadcast_sd(mat1->data + i*mat1->cols + k), 
+                    _mm256_loadu_pd(mat2->data + k*mat2->cols + j),
+                    r);
             }
-             for (int x = 0; x < 4; x += 1) {
-                _mm256_storeu_pd(result->data + i*result->cols + j + x*4, ra[x]);
-             }
+            _mm256_storeu_pd(result->data + i*result->cols + j, r);
         }
         // tail case
-        for (unsigned int j = mat2_t->rows / 4 * 4; j < mat2_t->rows; j+= 1) {
+        for (unsigned int j = mat2->cols / 4 * 4; j < mat2->cols; j+= 1) {
            result->data[i*result->cols + j] = 0; 
            for (unsigned int k = 0; k < mat1->cols; k += 1) {
-               result->data[i*result->cols + j] += mat1->data[i*mat1->cols + k] * mat2->data[j*mat2_t->cols + k];
+               result->data[i*result->cols + j] += mat1->data[i*mat1->cols + k] * mat2->data[k*mat2->cols + j];
            } 
         }
     }
-    deallocate_matrix(mat2_t);
+    // deallocate_matrix(mat2_t);
     return 0;
 }
 
